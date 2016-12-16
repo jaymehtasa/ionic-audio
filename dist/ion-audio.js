@@ -37,7 +37,7 @@ angular.module('ionic-audio').filter('duration', ['$filter', function ($filter) 
 }]);
 
 
-angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', '$window', function ($interval, $timeout, $window) {
+angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', '$window', '$rootScope', function ($interval, $timeout, $window, $rootScope) {
     var tracks = [], currentTrack, currentMedia, playerTimer;
 
     if (!$window.cordova && !$window.Media) {
@@ -51,9 +51,11 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
         pause: pause,
         stop: stop,
         seekTo: seekTo,
-        destroy: destroy
+        destroy: destroy,
+        getCurrentTimePosition:getCurrentTimePosition,
+        customPlay:customPlay,
     };
-
+   
     function find(track) {
         if (track.id < 0) return;
 
@@ -77,6 +79,11 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
          art: 'img/The_Police_Greatest_Hits.jpg'
      }
      */
+    
+    function customPlay () {
+    	resume();
+    }
+    
     function add(track, playbackSuccess, playbackError, statusChange, progressChange) {
         if (!track.url) {
             console.log('ionic-audio: missing track url');
@@ -102,22 +109,29 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
     }
 
     function play(trackID) {
+    	
+    	
         if (!angular.isNumber(trackID) || trackID > tracks.length - 1) return;
 
         // avoid two tracks playing simultaneously
+        console.log(currentTrack);
         if (currentTrack) {
             if (currentTrack.id == trackID) {
                 if (currentTrack.status == Media.MEDIA_RUNNING) {
+                	
                     pause();
                 } else {
                     //if (currentTrack.status == Media.MEDIA_PAUSED) {
+                	
                         resume();
+                        
                     //}
                 }
                 return;
             } else {
                 if (currentTrack.id > -1) {
                     stop();
+                    
                 }
             }
         }
@@ -132,11 +146,16 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
 
         currentMedia.pause();
         stopTimer();
+        $rootScope.customPlayEnable = true; 
+        $rootScope.genericPlayEnable = true;
+        
+         
+        
     }
 
     function seekTo(pos) {
         if (!currentMedia) return;
-
+        
         currentMedia.seekTo(pos * 1000);
     }
 
@@ -149,24 +168,36 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
     function playTrack(track) {
         currentTrack = track;
 
-        console.log('ionic-audio: playing track ' + currentTrack.title);
+        //console.log('ionic-audio: playing track ' + currentTrack.title);
 
         currentMedia = createMedia(currentTrack);
         currentMedia.play();
 
         startTimer();
+        
+        $rootScope.customPlayEnable = false;
+        $rootScope.genericPlayEnable = false;
+    	
+    	
+        
+        
     }
 
     function resume() {
         console.log('ionic-audio: resuming track ' + currentTrack.title);
         currentMedia.play();
         startTimer();
+        $rootScope.customPlayEnable = false;
+        $rootScope.genericPlayEnable = false;
+        
     }
 
     function stop() {
         if (currentMedia){
             console.log('ionic-audio: stopping track ' + currentTrack.title);
             currentMedia.stop();    // will call onSuccess...
+            $rootScope.customPlayEnable = true; 
+            $rootScope.genericPlayEnable = true;
         }
     }
 
@@ -187,6 +218,8 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
             currentMedia.release();
             currentMedia = undefined;
             currentTrack = undefined;
+            $rootScope.customPlayEnable = true; 
+            $rootScope.genericPlayEnable = true;
         }
     }
 
@@ -215,6 +248,12 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
             $interval.cancel(playerTimer);
             playerTimer = undefined;
         }
+    }
+    
+    function getCurrentTimePosition() {
+    	 
+    	 return currentMedia;
+         
     }
 
     function startTimer() {
@@ -349,7 +388,7 @@ function ionAudioProgressBar(MediaManager) {
         },
         template:
             '<h2 class="ion-audio-track-info" ng-style="displayTrackInfo()">{{track.title}} - {{track.artist}}</h2>' +
-            '<div class="range">' +
+            '<div class="range range-assertive">' +
             '<ion-audio-progress track="track"></ion-audio-progress>' +
             '<input type="range" name="volume" min="0" max="{{track.duration}}" ng-model="track.progress" on-release="sliderRelease()" disabled>' +
             '<ion-audio-duration track="track"></ion-audio-duration>' +
@@ -397,6 +436,7 @@ function ionAudioProgressBar(MediaManager) {
         // handle track seek-to
         scope.sliderRelease = function() {
             var pos = scope.track.progress;
+            console.log(pos);
             MediaManager.seekTo(pos);
         };
 
