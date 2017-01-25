@@ -9,4 +9,3 @@ angular.module('ionic-audio').filter('time', function () {
         return addLeadingZero(Math.floor(t / 60)) + ':' + addLeadingZero(t % 60);
     };
 });
-

@@ -8,7 +8,7 @@ function ionAudioProgressBar(MediaManager) {
         },
         template:
             '<h2 class="ion-audio-track-info" ng-style="displayTrackInfo()">{{track.title}} - {{track.artist}}</h2>' +
-            '<div class="range">' +
+            '<div class="range range-assertive">' +
             '<ion-audio-progress track="track"></ion-audio-progress>' +
             '<input type="range" name="volume" min="0" max="{{track.duration}}" ng-model="track.progress" on-release="sliderRelease()" disabled>' +
             '<ion-audio-duration track="track"></ion-audio-duration>' +
@@ -17,12 +17,14 @@ function ionAudioProgressBar(MediaManager) {
     };
 
     function link(scope, element, attrs) {
+
+
         var slider =  element.find('input'), unbindTrackListener;
 
         function init() {
-            scope.track.progress = 0;
-            scope.track.status = 0;
-            scope.track.duration = -1;
+            //scope.track.progress = 0;
+            //scope.track.status = 0;
+            //scope.track.duration = -1;
         }
 
         if (!angular.isDefined(attrs.displayTime)) {
@@ -45,8 +47,10 @@ function ionAudioProgressBar(MediaManager) {
         // disable slider if track is not playing
         var unbindStatusListener = scope.$watch('track.status', function(status) {
             // disable if track hasn't loaded
+
             slider.prop('disabled', status == 0);   //   Media.MEDIA_NONE
         });
+
 
         // hide/show track info if available
         scope.displayTrackInfo = function() {
@@ -56,10 +60,12 @@ function ionAudioProgressBar(MediaManager) {
         // handle track seek-to
         scope.sliderRelease = function() {
             var pos = scope.track.progress;
+//            console.log(pos);
             MediaManager.seekTo(pos);
         };
 
         scope.$on('$destroy', function() {
+
             unbindStatusListener();
             if (angular.isDefined(unbindTrackListener)) {
                 unbindTrackListener();
