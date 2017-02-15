@@ -155,6 +155,9 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
     function resume() {
 //        console.log('ionic-audio: resuming track ' + currentTrack.title);
         currentMedia.play();
+        if(Player.setRate != null){
+        	currentMedia.setRate(Player.setRate);
+        }
         startTimer();
         $rootScope.customPlayEnable = false;
         $rootScope.genericPlayEnable = false;
