@@ -125,6 +125,9 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
         if (!currentMedia) return;
 
         currentMedia.seekTo(pos * 1000);
+        if(Player.setRate != null){
+        	currentMedia.setRate(Player.setRate);
+        }
     }
 
     function destroy() {
