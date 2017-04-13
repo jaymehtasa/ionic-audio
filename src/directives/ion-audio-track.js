@@ -108,6 +108,7 @@ function ionAudioTrack(MediaManager, $rootScope, Player) {
         $scope.$on('$destroy', function() {
             unbindWatcher();
             MediaManager.destroy();
+            console.log(546);
         });
     }
 }

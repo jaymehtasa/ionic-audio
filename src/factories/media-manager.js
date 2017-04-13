@@ -1,4 +1,4 @@
-angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', '$window', '$rootScope', 'Player',  function ($interval, $timeout, $window, $rootScope, Player) {
+angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', '$window', '$rootScope', 'Player', 'ListenLater', '$localStorage', '_', 'Analytics',    function ($interval, $timeout, $window, $rootScope, Player, ListenLater, $localStorage, _, Analytics) {
     var tracks = [], currentTrack, currentMedia, playerTimer;
     var isSeek = true;
     var isSet = false;
@@ -17,6 +17,8 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
         destroy: destroy,
         getCurrentTimePosition:getCurrentTimePosition,
         customPlay:customPlay,
+        customRelease:customRelease,
+
     };
 
     function find(track) {
@@ -114,8 +116,13 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
 
         currentMedia.pause();
         stopTimer();
+
         $rootScope.customPlayEnable = true;
         $rootScope.genericPlayEnable = true;
+        MusicControls.updateIsPlaying(false); // toggle the play/pause notification button
+        // MusicControls.updateDismissable(false);
+
+
 
 
 
@@ -135,14 +142,22 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
         releaseMedia();
     }
 
+    function customRelease () {
+
+        currentMedia.release();
+        currentMedia = undefined;
+        currentTrack = undefined;
+        MusicControls.destroy();
+    }
+
 
     function playTrack(track) {
 
         currentTrack = track;
 
         //console.log('ionic-audio: playing track ' + currentTrack.title);
-
         currentMedia = createMedia(currentTrack);
+//        console.log(currentMedia);
         currentMedia.play();
 
         startTimer();
@@ -164,6 +179,8 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
         startTimer();
         $rootScope.customPlayEnable = false;
         $rootScope.genericPlayEnable = false;
+        MusicControls.updateIsPlaying(true); // toggle the play/pause notification button
+        // MusicControls.updateDismissable(false);
 
     }
 
@@ -174,6 +191,7 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
             $rootScope.customPlayEnable = true;
             $rootScope.genericPlayEnable = true;
             MusicControls.destroy();
+
         }
     }
 
@@ -197,6 +215,7 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
             $rootScope.customPlayEnable = true;
             $rootScope.genericPlayEnable = true;
             MusicControls.destroy();
+
         }
     }
 
@@ -214,19 +233,70 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
     }
 
     function onStatusChange(status) {
-        this.status = status;
 
-        console.log("status is"+status);
-        console.log("Media.MEDIA_RUNNING is " + Media.MEDIA_RUNNING);
+        // console.log(322);
+        // console.log(status+' :: '+$rootScope.customPlayEnable);
+        this.status = status;
+        Player.currentMediaStatus = status;
+
+        if($rootScope.customPlayEnable == false && status == 4) {
+            ListenLater.removeListenLater(Player.feedId);
+
+            // delete the song from audio_play
+            // Player.deleteAudio(Player.feedId).then(function (res) {
+            //     // console.log(res);
+            // }, function(error) {
+
+            //     // console.log(error);
+
+            // });
+            // check if user set play list playing so play the next song for same
+
+            Analytics.tagEvent('Episode Played', {"EpisodeId":Player.feedId,"Episode Name":Player.title,"Media Length":Player.totalTrackDuration, "Time Played":Player.totalTrackDuration,"Percent Played":100,"Did Pause":"no","Completed":"yes", "Did Next":"no"},0);
+
+           if ($localStorage.currentPlaylistListining) {
+
+             var index = _.findIndex($localStorage.currentPlaylistListining, {
+                        id: Player.feedId
+                    });
+                if(index !== -1) {
+                    if($localStorage.currentPlaylistListining [index+1]) {
+                         Player.url = null;
+                         Player.title = null;
+                         Player.album = null;
+                         Player.imageUrl = null;
+                         Player.feedId = null;
+                         Player.feed = null;
+
+                         Player.url = $localStorage.currentPlaylistListining [index+1].audio.url;
+                         Player.title = $localStorage.currentPlaylistListining [index+1].title;
+                         Player.album = $localStorage.currentPlaylistListining [index+1].ministry.name;
+                         Player.feedId = $localStorage.currentPlaylistListining [index+1].id;
+                         Player.feed = $localStorage.currentPlaylistListining [index+1];
+                         Player.imageUrl = $localStorage.currentPlaylistListining [index+1].image.url;
+                         $rootScope.changeNewFeedDetail ($localStorage.currentPlaylistListining [index+1]);
+                         $rootScope.playAudio('newPlay');
+
+                    }
+
+                }
+            }
+        }
+
+
+
+
+       console.log("status is"+status);
+       console.log("Media.MEDIA_RUNNING is " + Media.MEDIA_RUNNING);
 
         if(Media.MEDIA_RUNNING == status) {
 
-        	console.log('inside status');
-        	console.log(Player.seekTo);
+//        	console.log('inside status');
+//        	console.log(Player.seekTo);
 
 
         	 if(Player.seekTo) {
-        		console.log('inside seekTo');
+//        		console.log('inside seekTo');
         		currentMedia.pause();
          		setTimeout(function() {
          			currentMedia.seekTo(Player.seekTo* 1000);
@@ -277,7 +347,7 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
 
             if (angular.isFunction(currentTrack.onProgress)){
                 currentTrack.onProgress(currentTrack.progress, currentTrack.duration);
-                console.log('274...', currentTrack.progress, currentTrack.duration);
+//                console.log('274...', currentTrack.progress, currentTrack.duration);
                 updateDurationMusicControl(currentTrack.progress, currentTrack.duration);
             }
 
@@ -298,7 +368,7 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
         // }
     }
     function createMusicControls(track) {
-        console.log('299....', JSON.stringify(track));
+//        console.log('299....', JSON.stringify(track));
 
         MusicControls.create({
             track: track.title,        // optional, default : ''
@@ -331,8 +401,8 @@ angular.module('ionic-audio').factory('MediaManager', ['$interval', '$timeout', 
         });
 
         function events(action) {
-            console.log(140);
-            console.log(action);
+//            console.log(140);
+//            console.log(action);
             switch (action) {
                 case 'music-controls-next':
                     // Do something

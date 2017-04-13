@@ -1,6 +1,6 @@
-angular.module('ionic-audio').directive('ionAudioProgressBar', ['MediaManager', ionAudioProgressBar]);
+angular.module('ionic-audio').directive('ionAudioProgressBar', ['MediaManager', '$rootScope',  ionAudioProgressBar]);
 
-function ionAudioProgressBar(MediaManager) {
+function ionAudioProgressBar(MediaManager, $rootScope) {
     return {
         restrict: 'E',
         scope: {
@@ -8,7 +8,7 @@ function ionAudioProgressBar(MediaManager) {
         },
         template:
             '<h2 class="ion-audio-track-info" ng-style="displayTrackInfo()">{{track.title}} - {{track.artist}}</h2>' +
-            '<div class="range range-assertive">' +
+            '<div class="" ng-class="checkPlayerStatus()">' +
             '<ion-audio-progress track="track"></ion-audio-progress>' +
             '<input type="range" name="volume" min="0" max="{{track.duration}}" ng-model="track.progress" on-release="sliderRelease()" disabled>' +
             '<ion-audio-duration track="track"></ion-audio-duration>' +
@@ -55,6 +55,16 @@ function ionAudioProgressBar(MediaManager) {
         // hide/show track info if available
         scope.displayTrackInfo = function() {
             return { visibility: angular.isDefined(attrs.displayInfo) && angular.isDefined(scope.track) && (scope.track.title || scope.track.artist) ? 'visible' : 'hidden'}
+        };
+         scope.checkPlayerStatus = function() {
+
+            if($rootScope.isMediaEnable == true) {
+                return 'range1 range-assertive1'
+            }
+            else
+                return 'range1 range-assertive1';
+
+            console.log($rootScope);
         };
 
         // handle track seek-to
